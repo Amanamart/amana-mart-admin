@@ -95,7 +95,7 @@ export function StoresClient() {
         </div>
       ),
     },
-    { key: 'module', header: 'Module', render: (v) => <Badge variant="info">{v?.name || 'Default'}</Badge> },
+    { key: 'module', header: 'Module', render: (v: any) => <Badge variant="info">{v?.name || 'Default'}</Badge> },
     {
       key: 'orders',
       header: 'Orders',
