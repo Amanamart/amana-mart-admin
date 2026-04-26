@@ -9,6 +9,7 @@ import {
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useWhatsAppSessions } from '@/hooks/useWhatsApp';
 
 export function WhatsAppClient() {
