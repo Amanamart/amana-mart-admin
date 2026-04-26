@@ -97,7 +97,7 @@ export function ZonesClient() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)] text-[13px]">
-              {filteredZones.map((zone, i) => (
+              {filteredZones.map((zone: any, i: number) => (
                 <tr key={zone.id} className="hover:bg-[#fcfcfc] transition-colors">
                   <td className="px-5 py-4 text-[var(--muted-foreground)]">{i + 1}</td>
                   <td className="px-5 py-4 font-medium text-[var(--foreground)]">{zone.name}</td>

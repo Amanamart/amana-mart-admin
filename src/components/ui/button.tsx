@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'warning';
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
@@ -32,6 +32,7 @@ const sizeStyles: Record<string, string> = {
   sm: 'h-8 px-3 text-xs rounded-[var(--radius)] gap-1.5',
   md: 'h-9 px-4 text-sm rounded-[var(--radius)] gap-2',
   lg: 'h-11 px-6 text-sm rounded-[var(--radius-md)] gap-2',
+  icon: 'h-9 w-9 p-0 rounded-full',
 };
 
 export function Button({
