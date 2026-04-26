@@ -35,6 +35,7 @@ import {
   Monitor,
   UserCog,
   Receipt,
+  Car,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
