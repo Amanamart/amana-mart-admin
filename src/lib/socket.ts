@@ -1,0 +1,23 @@
+import { io, Socket } from 'socket.io-client';
+
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+export const socket: Socket = io(SOCKET_URL, {
+  autoConnect: false,
+  withCredentials: true,
+});
+
+export const connectSocket = (token?: string) => {
+  if (token) {
+    socket.auth = { token };
+  }
+  if (!socket.connected) {
+    socket.connect();
+  }
+};
+
+export const disconnectSocket = () => {
+  if (socket.connected) {
+    socket.disconnect();
+  }
+};

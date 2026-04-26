@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ModuleProvider } from '@/context/ModuleContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SessionProvider } from 'next-auth/react';
+import { SocketProvider } from '@/context/SocketContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -21,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
           <ModuleProvider>
-            {children}
+            <SocketProvider>
+              {children}
+            </SocketProvider>
           </ModuleProvider>
         </LanguageProvider>
       </QueryClientProvider>
