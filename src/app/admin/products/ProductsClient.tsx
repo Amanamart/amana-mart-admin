@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Eye, Edit, Trash2, Star } from 'lucide-react';
+import Image from 'next/image';
+import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+
 import { PageHeader } from '@/components/admin/PageHeader';
 import { FilterBar } from '@/components/admin/FilterBar';
 import { DataTable, TablePagination, Column } from '@/components/admin/DataTable';
@@ -10,95 +12,64 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getTranslation } from '@/lib/utils';
 
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  store: string;
-  price: number;
-  stock: number;
-  status: 'active' | 'inactive' | 'out_of_stock';
-  rating: number;
-  orders: number;
-  sku: string;
-}
+import { useProducts, useCategories, useModules } from '@/hooks/useAdminDashboard';
 
-const CATEGORIES = ['Grocery', 'Electronics', 'Fashion', 'Pharmacy', 'Home & Living', 'Sports'];
-const STORES = ['Dhaka Fresh Market', 'BD Electronics', 'Amana Grocery', 'Fashion Hub BD', 'Dhaka Pharmacy'];
-
-const PRODUCTS: Product[] = Array.from({ length: 80 }, (_, i) => ({
-  id: `prod-${i + 1}`,
-  name: [
-    'Organic Basmati Rice 5kg',
-    'Samsung Galaxy A54',
-    'Cotton Kurti Set',
-    'Paracetamol 500mg x24',
-    'LED Smart TV 43"',
-    'Mango Pickle 500g',
-    'Wireless Earbuds Pro',
-    'Linen Bedsheet Set',
-    'Vitamin C 1000mg',
-    'Fresh Hilsa Fish 1kg',
-  ][i % 10],
-  category: CATEGORIES[i % CATEGORIES.length],
-  store: STORES[i % STORES.length],
-  price: 200 + (i * 223 + 500) % 50000,
-  stock: i % 7 === 0 ? 0 : 5 + (i * 13) % 200,
-  status: i % 7 === 0 ? 'out_of_stock' : i % 5 === 0 ? 'inactive' : 'active',
-  rating: parseFloat((3.8 + (i % 12) * 0.1).toFixed(1)),
-  orders: (i * 37 + 5) % 500,
-  sku: `SKU-${String(10000 + i).slice(1)}`,
-}));
-
-const TABS = [
-  { id: 'all', label: 'All Products', count: PRODUCTS.length },
-  { id: 'active', label: 'Active', count: PRODUCTS.filter((p) => p.status === 'active').length },
-  { id: 'inactive', label: 'Inactive', count: PRODUCTS.filter((p) => p.status === 'inactive').length },
-  { id: 'out_of_stock', label: 'Out of Stock', count: PRODUCTS.filter((p) => p.status === 'out_of_stock').length },
-];
 
 export function ProductsClient() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [moduleId, setModuleId] = useState('');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
-  const filtered = useMemo(() => {
-    let list = PRODUCTS;
-    if (activeTab !== 'all') list = list.filter((p) => p.status === activeTab);
-    if (categoryFilter) list = list.filter((p) => p.category === categoryFilter);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.store.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [activeTab, search, categoryFilter]);
+  const { data: productsData, isLoading } = useProducts({
+    page,
+    limit: PER_PAGE,
+    search,
+    categoryId: categoryFilter,
+    moduleId,
+    status: activeTab === 'all' ? undefined : activeTab,
+  });
 
-  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
+  const { data: categoriesData } = useCategories({ moduleId });
+  const { data: modulesData } = useModules();
 
-  const columns: Column<Product>[] = [
+  const products = (productsData as any)?.products || [];
+  const total = (productsData as any)?.total || 0;
+  const categories = categoriesData || [];
+  const modules = modulesData || [];
+
+  const TABS = [
+    { id: 'all', label: 'All Products', count: total },
+    { id: 'active', label: 'Active' },
+    { id: 'inactive', label: 'Inactive' },
+    { id: 'out_of_stock', label: 'Out of Stock' },
+  ];
+
+  const columns: Column<any>[] = [
     {
       key: 'name',
+
       header: 'Product',
-      render: (_, row) => (
+      render: (_, row: any) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[var(--radius)] bg-gradient-to-br from-[var(--muted)] to-[var(--border)] flex items-center justify-center text-lg shrink-0">
-            🛍️
+          <div className="w-10 h-10 rounded-[var(--radius)] bg-gradient-to-br from-[var(--muted)] to-[var(--border)] flex items-center justify-center text-lg shrink-0 overflow-hidden relative">
+            {row.image ? <Image src={row.image} alt="" fill className="object-cover" /> : '🛍️'}
           </div>
+
           <div>
-            <p className="text-[13px] font-medium text-[var(--foreground)] leading-tight">{row.name}</p>
-            <p className="text-[11px] text-[var(--muted-foreground)]">SKU: {row.sku}</p>
+            <p className="text-[13px] font-medium text-[var(--foreground)] leading-tight">{getTranslation(row.name, 'en')}</p>
+            <p className="text-[11px] text-[var(--muted-foreground)]">SKU: {row.sku || 'N/A'}</p>
           </div>
         </div>
       ),
     },
-    { key: 'category', header: 'Category', render: (v) => <Badge variant="info">{v as string}</Badge> },
-    { key: 'store', header: 'Store', render: (v) => <span className="text-[12px] text-[var(--muted-foreground)]">{v as string}</span> },
+    { key: 'category', header: 'Category', render: (_, row: any) => <Badge variant="info">{getTranslation(row.category?.name, 'en') || 'Uncategorized'}</Badge> },
+    { key: 'store', header: 'Store', render: (_, row: any) => <span className="text-[12px] text-[var(--muted-foreground)]">{row.store?.name || 'N/A'}</span> },
+
     {
       key: 'price',
       header: 'Price',
@@ -119,17 +90,6 @@ export function ProductsClient() {
       ),
     },
     {
-      key: 'rating',
-      header: 'Rating',
-      align: 'center',
-      render: (v) => (
-        <span className="inline-flex items-center gap-1 text-[12px] font-medium">
-          <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-          {v as number}
-        </span>
-      ),
-    },
-    {
       key: 'status',
       header: 'Status',
       render: (v) => {
@@ -141,12 +101,25 @@ export function ProductsClient() {
         );
       },
     },
+    ...(modules.find((m: any) => m.id === moduleId)?.type === 'pharmacy' ? [{
+      key: 'requiresPrescription',
+      header: 'Prescription',
+      render: (v: any) => v ? <Badge variant="warning">Required</Badge> : <span className="text-[12px] text-[var(--muted-foreground)]">No</span>
+    }] : []),
+    ...(modules.find((m: any) => m.id === moduleId)?.type === 'food' ? [{
+      key: 'cuisine',
+      header: 'Cuisine',
+      render: (_, row: any) => <span className="text-[12px]">{getTranslation(row.cuisine?.name, 'en') || 'N/A'}</span>
+    }] : []),
+
+
     {
       key: 'id',
       header: 'Actions',
       align: 'center',
-      render: () => (
+      render: (_, __: any) => (
         <div className="flex items-center justify-center gap-1">
+
           <button className="w-7 h-7 rounded flex items-center justify-center text-[var(--muted-foreground)] hover:bg-blue-50 hover:text-blue-600 transition-colors" title="View">
             <Eye className="w-3.5 h-3.5" />
           </button>
@@ -188,24 +161,38 @@ export function ProductsClient() {
           onSearchChange={(v) => { setSearch(v); setPage(1); }}
           onExport={() => {}}
           filters={
-            <Select
-              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
-              placeholder="All Categories"
-              value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-              className="min-w-[150px]"
-            />
+            <div className="flex items-center gap-2">
+              <Select
+                options={modules.map((m: any) => ({ value: m.id, label: getTranslation(m.name, 'en') }))}
+                placeholder="All Modules"
+                value={moduleId}
+                onChange={(e) => { setModuleId(e.target.value); setCategoryFilter(''); setPage(1); }}
+                className="min-w-[150px]"
+              />
+              <Select
+                options={categories.map((c: any) => ({ value: c.id, label: getTranslation(c.name, 'en') }))}
+                placeholder="All Categories"
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+                className="min-w-[150px]"
+                disabled={!moduleId}
+              />
+            </div>
           }
         />
 
+
         <DataTable
           columns={columns}
-          data={paginated}
+          data={products}
+          loading={isLoading}
           keyField="id"
           className="rounded-none border-none"
         />
 
-        <TablePagination page={page} perPage={PER_PAGE} total={filtered.length} onPageChange={setPage} />
+
+        <TablePagination page={page} perPage={PER_PAGE} total={total} onPageChange={setPage} />
+
       </div>
     </div>
   );

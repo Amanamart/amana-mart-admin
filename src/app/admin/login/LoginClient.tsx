@@ -5,8 +5,12 @@ import Link from 'next/link';
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
 
 export function AdminLoginClient() {
+  const router = useRouter();
   const [email, setEmail] = useState('admin@amanamart.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,17 +18,31 @@ export function AdminLoginClient() {
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
+
     e.preventDefault();
     setLoading(true);
     setError('');
-    await new Promise((r) => setTimeout(r, 1000));
-    if (password === 'admin123' || password === '12345678') {
-      window.location.href = '/admin';
-    } else {
-      setError('Invalid credentials. Use password: admin123');
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        router.push('/admin');
+        router.refresh();
+      }
+    } catch (err: any) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
 
   return (
     <div className="min-h-screen flex">

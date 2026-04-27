@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { Plus, Edit, Trash2, ChevronRight, ChevronDown, FolderOpen, Package } from 'lucide-react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { FilterBar } from '@/components/admin/FilterBar';
@@ -9,54 +8,26 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { Modal } from '@/components/ui/Modal';
 import { Input, Select } from '@/components/ui/input';
+import { useCategories, useModules } from '@/hooks/useAdminDashboard';
+import { getTranslation } from '@/lib/utils';
 
-interface Category {
-  id: string;
-  name: string;
-  module: string;
-  products: number;
-  subcategories: number;
-  status: 'active' | 'inactive';
-  order: number;
-  children?: Category[];
-}
-
-const CATEGORIES: Category[] = [
-  { id: 'c1', name: 'Fruits & Vegetables', module: 'Grocery', products: 234, subcategories: 8, status: 'active', order: 1, children: [
-    { id: 'c1-1', name: 'Fresh Fruits', module: 'Grocery', products: 89, subcategories: 0, status: 'active', order: 1 },
-    { id: 'c1-2', name: 'Fresh Vegetables', module: 'Grocery', products: 112, subcategories: 0, status: 'active', order: 2 },
-    { id: 'c1-3', name: 'Exotic Produce', module: 'Grocery', products: 33, subcategories: 0, status: 'active', order: 3 },
-  ]},
-  { id: 'c2', name: 'Dairy & Eggs', module: 'Grocery', products: 78, subcategories: 4, status: 'active', order: 2, children: [
-    { id: 'c2-1', name: 'Milk', module: 'Grocery', products: 22, subcategories: 0, status: 'active', order: 1 },
-    { id: 'c2-2', name: 'Eggs', module: 'Grocery', products: 15, subcategories: 0, status: 'active', order: 2 },
-  ]},
-  { id: 'c3', name: 'Medicines', module: 'Pharmacy', products: 543, subcategories: 12, status: 'active', order: 1, children: [
-    { id: 'c3-1', name: 'OTC Medicines', module: 'Pharmacy', products: 234, subcategories: 0, status: 'active', order: 1 },
-    { id: 'c3-2', name: 'Prescription', module: 'Pharmacy', products: 189, subcategories: 0, status: 'active', order: 2 },
-  ]},
-  { id: 'c4', name: 'Mobile Phones', module: 'eCommerce', products: 89, subcategories: 3, status: 'active', order: 1 },
-  { id: 'c5', name: 'Clothing', module: 'eCommerce', products: 312, subcategories: 8, status: 'active', order: 2 },
-  { id: 'c6', name: 'Fast Food', module: 'Food', products: 145, subcategories: 5, status: 'active', order: 1 },
-  { id: 'c7', name: 'Old Items', module: 'Grocery', products: 3, subcategories: 0, status: 'inactive', order: 99 },
-];
-
-const MODULES = ['All', 'Grocery', 'Pharmacy', 'eCommerce', 'Food', 'Parcel'];
 
 const TABS = [
-  { id: 'all', label: 'All Categories', count: CATEGORIES.length },
-  { id: 'active', label: 'Active', count: CATEGORIES.filter(c => c.status === 'active').length },
-  { id: 'inactive', label: 'Inactive', count: CATEGORIES.filter(c => c.status === 'inactive').length },
+  { id: 'all', label: 'All Categories' },
+  { id: 'active', label: 'Active' },
+  { id: 'inactive', label: 'Inactive' },
 ];
+
 
 const MODULE_COLORS: Record<string, string> = {
   'Grocery': '#1aab50', 'Pharmacy': '#ef4444', 'eCommerce': '#3b82f6',
   'Food': '#f59e0b', 'Parcel': '#8b5cf6',
 };
 
-function CategoryRow({ cat, depth = 0 }: { cat: Category; depth?: number }) {
+function CategoryRow({ cat, depth = 0 }: { cat: any; depth?: number }) {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = cat.children && cat.children.length > 0;
+  const moduleName = getTranslation(cat.module?.name, 'en') || 'Default';
 
   return (
     <>
@@ -70,25 +41,30 @@ function CategoryRow({ cat, depth = 0 }: { cat: Category; depth?: number }) {
             ) : (
               <span className="w-4" />
             )}
-            <div className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${MODULE_COLORS[cat.module] || '#6b7280'}15` }}>
-              {hasChildren ? <FolderOpen className="w-4 h-4" style={{ color: MODULE_COLORS[cat.module] || '#6b7280' }} />
-                : <Package className="w-4 h-4" style={{ color: MODULE_COLORS[cat.module] || '#6b7280' }} />}
+            <div className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center shrink-0 overflow-hidden relative"
+              style={{ backgroundColor: `${MODULE_COLORS[moduleName] || '#6b7280'}15` }}>
+              {cat.image ? (
+                <Image src={cat.image} alt="" fill className="object-cover" />
+              ) : hasChildren ? (
+                <FolderOpen className="w-4 h-4" style={{ color: MODULE_COLORS[moduleName] || '#6b7280' }} />
+              ) : (
+                <Package className="w-4 h-4" style={{ color: MODULE_COLORS[moduleName] || '#6b7280' }} />
+              )}
             </div>
-            <span className="text-[13px] font-medium text-[var(--foreground)]">{cat.name}</span>
+            <span className="text-[13px] font-medium text-[var(--foreground)]">{getTranslation(cat.name, 'en')}</span>
           </div>
         </td>
         <td className="px-4 py-3">
-          <Badge variant="info" style={{ backgroundColor: `${MODULE_COLORS[cat.module]}15`, color: MODULE_COLORS[cat.module], borderColor: `${MODULE_COLORS[cat.module]}30` }}>
-            {cat.module}
+          <Badge variant="info" style={{ backgroundColor: `${MODULE_COLORS[moduleName]}15`, color: MODULE_COLORS[moduleName], borderColor: `${MODULE_COLORS[moduleName]}30` }}>
+            {moduleName}
           </Badge>
         </td>
-        <td className="px-4 py-3 text-center text-[13px] font-medium">{cat.products}</td>
-        <td className="px-4 py-3 text-center text-[13px] text-[var(--muted-foreground)]">{cat.subcategories}</td>
-        <td className="px-4 py-3 text-center">{cat.order}</td>
+        <td className="px-4 py-3 text-center text-[13px] font-medium">{cat._count?.products || 0}</td>
+        <td className="px-4 py-3 text-center text-[13px] text-[var(--muted-foreground)]">{cat.children?.length || 0}</td>
+        <td className="px-4 py-3 text-center">{cat.priority || 0}</td>
         <td className="px-4 py-3">
-          <Badge variant={cat.status === 'active' ? 'success' : 'muted'} dot>
-            {cat.status === 'active' ? 'Active' : 'Inactive'}
+          <Badge variant={cat.status ? 'success' : 'muted'} dot>
+            {cat.status ? 'Active' : 'Inactive'}
           </Badge>
         </td>
         <td className="px-4 py-3">
@@ -102,12 +78,13 @@ function CategoryRow({ cat, depth = 0 }: { cat: Category; depth?: number }) {
           </div>
         </td>
       </tr>
-      {expanded && cat.children?.map((child) => (
+      {expanded && cat.children?.map((child: any) => (
         <CategoryRow key={child.id} cat={child} depth={depth + 1} />
       ))}
     </>
   );
 }
+
 
 export function CategoriesClient() {
   const [activeTab, setActiveTab] = useState('all');
@@ -115,13 +92,33 @@ export function CategoriesClient() {
   const [moduleFilter, setModuleFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
+  const { data: categoriesData, isLoading } = useCategories({
+    moduleId: moduleFilter,
+  });
+  const { data: modulesData } = useModules();
+
+  const categories = categoriesData || [];
+  const modules = modulesData || [];
+
   const filtered = useMemo(() => {
-    let list = CATEGORIES;
-    if (activeTab !== 'all') list = list.filter(c => c.status === activeTab);
-    if (moduleFilter) list = list.filter(c => c.module === moduleFilter);
-    if (search) list = list.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+    let list = categories;
+    if (activeTab !== 'all') {
+      const status = activeTab === 'active';
+      list = list.filter((c: any) => c.status === status);
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((c: any) => getTranslation(c.name, 'en').toLowerCase().includes(q));
+    }
     return list;
-  }, [activeTab, search, moduleFilter]);
+  }, [activeTab, search, categories]);
+
+  const TABS = [
+    { id: 'all', label: 'All Categories', count: categories.length },
+    { id: 'active', label: 'Active', count: categories.filter((c: any) => c.status).length },
+    { id: 'inactive', label: 'Inactive', count: categories.filter((c: any) => !c.status).length },
+  ];
+
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -147,16 +144,18 @@ export function CategoriesClient() {
           onSearchChange={setSearch}
           onExport={() => {}}
           filters={
-            <select
+            <Select
               value={moduleFilter}
               onChange={(e) => setModuleFilter(e.target.value)}
-              className="h-9 rounded-[var(--radius)] border border-[var(--border)] bg-white text-sm text-[var(--foreground)] px-3 focus:outline-none focus:border-[var(--primary)] min-w-[140px]"
-            >
-              <option value="">All Modules</option>
-              {MODULES.slice(1).map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+              options={[
+                { value: '', label: 'All Modules' },
+                ...modules.map((m: any) => ({ value: m.id, label: getTranslation(m.name, 'en') }))
+              ]}
+              className="min-w-[150px]"
+            />
           }
         />
+
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#f8f9fb] border-b border-[var(--border)]">
@@ -166,12 +165,16 @@ export function CategoriesClient() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(cat => <CategoryRow key={cat.id} cat={cat} />)}
+            {isLoading ? (
+              <tr><td colSpan={7} className="py-12 text-center text-[var(--muted-foreground)]">Loading categories...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={7} className="py-12 text-center text-[var(--muted-foreground)]">No categories found</td></tr>
+            ) : (
+              filtered.map((cat: any) => <CategoryRow key={cat.id} cat={cat} />)
+            )}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="py-12 text-center text-[13px] text-[var(--muted-foreground)]">No categories found</div>
-        )}
+
       </div>
 
       <Modal
@@ -190,9 +193,10 @@ export function CategoriesClient() {
           <Input label="Category Name" required placeholder="e.g., Fruits & Vegetables" />
           <Input label="Category Name (Bengali)" placeholder="ফলমূল ও শাকসবজি" />
           <div className="grid grid-cols-2 gap-3">
-            <Select label="Module" required options={MODULES.slice(1).map(m => ({ value: m, label: m }))} />
-            <Select label="Parent Category" options={[{ value: '', label: '— Root Category —' }, ...CATEGORIES.filter(c => c.status === 'active').map(c => ({ value: c.id, label: c.name }))]} />
+            <Select label="Module" required options={modules.map((m: any) => ({ value: m.id, label: getTranslation(m.name, 'en') }))} />
+            <Select label="Parent Category" options={[{ value: '', label: '— Root Category —' }, ...categories.filter((c: any) => c.status).map((c: any) => ({ value: c.id, label: getTranslation(c.name, 'en') }))]} />
           </div>
+
           <Input label="Display Order" type="number" placeholder="1" />
           <div className="border-2 border-dashed border-[var(--border)] rounded-[var(--radius-md)] p-6 text-center cursor-pointer hover:border-[var(--primary)] transition-colors">
             <p className="text-[13px] font-medium text-[var(--muted-foreground)]">Upload Category Image</p>

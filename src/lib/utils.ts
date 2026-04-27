@@ -83,3 +83,12 @@ export function getPercentageChange(current: number, previous: number): number {
   if (previous === 0) return 0;
   return Math.round(((current - previous) / previous) * 100);
 }
+
+export function getTranslation(data: any, lang: string = 'en'): string {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  if (typeof data === 'object') {
+    return data[lang] || data['en'] || Object.values(data)[0] || '';
+  }
+  return String(data);
+}

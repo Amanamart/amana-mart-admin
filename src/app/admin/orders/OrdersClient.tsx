@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Eye, Printer, RefreshCcw } from 'lucide-react';
+
 import { PageHeader } from '@/components/admin/PageHeader';
 import { FilterBar } from '@/components/admin/FilterBar';
 import { DataTable, TablePagination, Column } from '@/components/admin/DataTable';
@@ -12,86 +13,43 @@ import { Select } from '@/components/ui/input';
 import { Modal } from '@/components/ui/Modal';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 
-type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'refunded';
 
-interface Order {
-  id: string;
-  orderId: string;
-  customer: string;
-  store: string;
-  amount: number;
-  status: OrderStatus;
-  payment: string;
-  items: number;
-  createdAt: string;
-  zone: string;
-}
 
-// ── Mock Data ──────────────────────────────────────────────
-const generateOrders = (): Order[] =>
-  Array.from({ length: 60 }, (_, i) => {
-    const statuses: OrderStatus[] = ['pending', 'confirmed', 'processing', 'out_for_delivery', 'delivered', 'cancelled', 'refunded'];
-    const stores = ['Dhaka Fresh Market', 'BD Electronics', 'Amana Grocery', 'Fashion Hub BD', 'Dhaka Pharmacy', 'Tech World'];
-    const customers = ['Rahim Ahmed', 'Fatima Begum', 'Karim Hossain', 'Nasrin Islam', 'Hasan Ali', 'Sumaiya Khan'];
-    const payments = ['Cash on Delivery', 'bKash', 'Nagad', 'Card', 'Rocket'];
-    const zones = ['Dhaka North', 'Dhaka South', 'Chattogram', 'Sylhet', 'Rajshahi'];
-    const status = statuses[i % statuses.length];
-    const days = Math.floor(i / 2);
-    const d = new Date(2026, 3, 19 - days, 10 + (i % 12), (i * 7) % 60);
-    return {
-      id: `order-${1000 - i}`,
-      orderId: `AM-${10567 - i}`,
-      customer: customers[i % customers.length],
-      store: stores[i % stores.length],
-      amount: 500 + (i * 137 + 800) % 25000,
-      status,
-      payment: payments[i % payments.length],
-      items: 1 + (i % 8),
-      createdAt: d.toISOString(),
-      zone: zones[i % zones.length],
-    };
-  });
-
-const ORDERS = generateOrders();
-
-const STATUS_TABS = [
-  { id: 'all', label: 'All', count: ORDERS.length },
-  { id: 'pending', label: 'Pending', count: ORDERS.filter((o) => o.status === 'pending').length },
-  { id: 'confirmed', label: 'Confirmed', count: ORDERS.filter((o) => o.status === 'confirmed').length },
-  { id: 'processing', label: 'Processing', count: ORDERS.filter((o) => o.status === 'processing').length },
-  { id: 'out_for_delivery', label: 'Out for Delivery', count: ORDERS.filter((o) => o.status === 'out_for_delivery').length },
-  { id: 'delivered', label: 'Delivered', count: ORDERS.filter((o) => o.status === 'delivered').length },
-  { id: 'cancelled', label: 'Cancelled', count: ORDERS.filter((o) => o.status === 'cancelled').length },
-  { id: 'refunded', label: 'Refunded', count: ORDERS.filter((o) => o.status === 'refunded').length },
-];
+import { useOrders } from '@/hooks/useAdminDashboard';
 
 export function OrdersClient() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [paymentFilter, setPaymentFilter] = useState('');
   const PER_PAGE = 10;
 
-  const filtered = useMemo(() => {
-    let list = ORDERS;
-    if (activeTab !== 'all') list = list.filter((o) => o.status === activeTab);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (o) =>
-          o.orderId.toLowerCase().includes(q) ||
-          o.customer.toLowerCase().includes(q) ||
-          o.store.toLowerCase().includes(q)
-      );
-    }
-    if (paymentFilter) list = list.filter((o) => o.payment === paymentFilter);
-    return list;
-  }, [activeTab, search, paymentFilter]);
+  const { data: ordersData, isLoading } = useOrders({
+    page,
+    limit: PER_PAGE,
+    search,
+    status: activeTab === 'all' ? undefined : activeTab,
+    paymentMethod: paymentFilter,
+  });
 
-  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
+  const orders = (ordersData as any)?.orders || [];
+  const total = (ordersData as any)?.total || 0;
 
-  const columns: Column<Order>[] = [
+  const STATUS_TABS = [
+    { id: 'all', label: 'All', count: total },
+    { id: 'pending', label: 'Pending' },
+    { id: 'confirmed', label: 'Confirmed' },
+    { id: 'processing', label: 'Processing' },
+    { id: 'out_for_delivery', label: 'Out for Delivery' },
+    { id: 'delivered', label: 'Delivered' },
+    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'refunded', label: 'Refunded' },
+  ];
+
+
+  const columns: Column<any>[] = [
+
     {
       key: 'orderId',
       header: 'Order ID',
@@ -107,14 +65,15 @@ export function OrdersClient() {
     {
       key: 'customer',
       header: 'Customer',
-      render: (_, row) => (
+      render: (_, row: any) => (
         <div>
-          <p className="text-[13px] font-medium text-[var(--foreground)]">{row.customer}</p>
-          <p className="text-[11px] text-[var(--muted-foreground)]">{row.zone}</p>
+          <p className="text-[13px] font-medium text-[var(--foreground)]">{row.user?.name || 'Guest'}</p>
+          <p className="text-[11px] text-[var(--muted-foreground)]">{row.user?.phone || 'No Phone'}</p>
         </div>
       ),
     },
-    { key: 'store', header: 'Store', render: (v) => <span className="text-[13px]">{v as string}</span> },
+    { key: 'store', header: 'Store', render: (_, row: any) => <span className="text-[13px]">{row.store?.name || 'System'}</span> },
+
     {
       key: 'items',
       header: 'Items',
@@ -216,13 +175,15 @@ export function OrdersClient() {
 
         {/* Table */}
         <DataTable
-          columns={columns}
-          data={paginated}
+          columns={columns as any}
+          data={orders}
+          loading={isLoading}
           keyField="id"
           className="rounded-none border-none"
         />
 
-        <TablePagination page={page} perPage={PER_PAGE} total={filtered.length} onPageChange={setPage} />
+        <TablePagination page={page} perPage={PER_PAGE} total={total} onPageChange={setPage} />
+
       </div>
 
       {/* Order Detail Modal */}
@@ -244,14 +205,15 @@ export function OrdersClient() {
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-[var(--muted)] rounded-[var(--radius-md)]">
                 <p className="text-[12px] text-[var(--muted-foreground)] font-medium mb-2">Customer Info</p>
-                <p className="text-[14px] font-semibold text-[var(--foreground)]">{selectedOrder.customer}</p>
-                <p className="text-[12px] text-[var(--muted-foreground)] mt-1">{selectedOrder.zone}</p>
+                <p className="text-[14px] font-semibold text-[var(--foreground)]">{selectedOrder.user?.name || 'Guest'}</p>
+                <p className="text-[12px] text-[var(--muted-foreground)] mt-1">{selectedOrder.user?.phone || 'No Phone'}</p>
               </div>
               <div className="p-4 bg-[var(--muted)] rounded-[var(--radius-md)]">
                 <p className="text-[12px] text-[var(--muted-foreground)] font-medium mb-2">Store</p>
-                <p className="text-[14px] font-semibold text-[var(--foreground)]">{selectedOrder.store}</p>
+                <p className="text-[14px] font-semibold text-[var(--foreground)]">{selectedOrder.store?.name || 'System'}</p>
               </div>
             </div>
+
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 border border-[var(--border)] rounded-[var(--radius-md)] text-center">
                 <p className="text-[12px] text-[var(--muted-foreground)]">Total Amount</p>

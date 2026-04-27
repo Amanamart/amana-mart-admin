@@ -1,19 +1,43 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { apiClient } from './client';
 
-const fetcher = async (endpoint: string, options: RequestInit = {}) => {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-  if (!response.ok) throw new Error('API Error');
-  return response.json();
+export const adminService = {
+  // Dashboard
+  getDashboardStats: () => apiClient('/admin/stats'),
+  getOrderChartData: (days = 7) => apiClient('/admin/charts/orders', { params: { days } }),
+  
+  // Zones
+  getZones: () => apiClient('/admin/zones'),
+  createZone: (data: any) => apiClient('/admin/zones', { method: 'POST', body: JSON.stringify(data) }),
+  updateZone: (id: string, data: any) => apiClient(`/admin/zones/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteZone: (id: string) => apiClient(`/admin/zones/${id}`, { method: 'DELETE' }),
+
+  // Modules
+  getModules: () => apiClient('/admin/modules'),
+  updateModule: (id: string, data: any) => apiClient(`/admin/modules/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Stores
+  getStores: (params?: any) => apiClient('/admin/stores', { params }),
+  getStoreDetails: (id: string) => apiClient(`/admin/stores/${id}`),
+  updateStoreStatus: (id: string, status: string) => apiClient(`/admin/stores/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  // Products
+  getProducts: (params?: any) => apiClient('/admin/products', { params }),
+  getProductDetails: (id: string) => apiClient(`/admin/products/${id}`),
+  updateProduct: (id: string, data: any) => apiClient(`/admin/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteProduct: (id: string) => apiClient(`/admin/products/${id}`, { method: 'DELETE' }),
+
+  // Categories
+  getCategories: (params?: any) => apiClient('/admin/categories', { params }),
+  createCategory: (data: any) => apiClient('/admin/categories', { method: 'POST', body: JSON.stringify(data) }),
+  
+  // Orders
+  getOrders: (params?: any) => apiClient('/admin/orders', { params }),
+  getOrderDetails: (id: string) => apiClient(`/admin/orders/${id}`),
+  updateOrderStatus: (id: string, status: string) => apiClient(`/admin/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  // Delivery Men
+  getDeliveryMen: (params?: any) => apiClient('/admin/delivery', { params }),
+  // Reports
+  getReportsOverview: () => apiClient('/admin/reports/overview'),
 };
 
-export const getDashboardStats = () => fetcher('/admin/stats');
-export const getOrderChartData = (days = 7) => fetcher(`/admin/charts/orders?days=${days}`);
-export const getZones = () => fetcher('/admin/zones');
-export const getStores = () => fetcher('/admin/stores');
-export const createZone = (data: any) => fetcher('/admin/zones', { method: 'POST', body: JSON.stringify(data) });

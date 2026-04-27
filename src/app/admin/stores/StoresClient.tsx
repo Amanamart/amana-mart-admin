@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Plus, Eye, Edit, CheckCircle2, XCircle, Star, MapPin } from 'lucide-react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { FilterBar } from '@/components/admin/FilterBar';
@@ -8,7 +8,9 @@ import { DataTable, TablePagination, Column } from '@/components/admin/DataTable
 import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/Tabs';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getTranslation } from '@/lib/utils';
+import { useStores } from '@/hooks/useAdminDashboard';
+
 
 interface Store {
   id: string;
@@ -24,45 +26,30 @@ interface Store {
   joinDate: string;
 }
 
-const MODULES = ['Grocery', 'eCommerce', 'Pharmacy', 'Food', 'Electronics'];
-const ZONES = ['Dhaka North', 'Dhaka South', 'Chattogram', 'Sylhet', 'Rajshahi', 'Khulna'];
-
-import { useStores } from '@/hooks/useStores';
-
 export function StoresClient() {
-  const { data: storesData, isLoading } = useStores();
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const PER_PAGE = 10;
 
-  const STORES = storesData || [];
+  const { data: storesData, isLoading } = useStores({
+    search,
+    status: activeTab === 'all' ? undefined : activeTab,
+    page,
+    limit: PER_PAGE,
+  });
 
-  const filtered = useMemo(() => {
-    let list = STORES;
-    if (activeTab !== 'all') list = list.filter((s: any) => s.status === activeTab);
-    if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (s: any) => 
-          s.name.toLowerCase().includes(q) || 
-          s.owner?.name?.toLowerCase().includes(q) || 
-          s.zone?.name?.toLowerCase().includes(q)
-      );
-    }
-    return list;
-  }, [activeTab, search, STORES]);
-
-  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
-
-  if (isLoading) return <div className="p-8 text-center text-[var(--muted-foreground)]">Loading stores...</div>;
+  const stores = (storesData as any)?.stores || [];
+  const total = (storesData as any)?.total || 0;
 
   const TABS = [
-    { id: 'all', label: 'All Stores', count: STORES.length },
-    { id: 'active', label: 'Active', count: STORES.filter((s: any) => s.status === 'active').length },
-    { id: 'pending', label: 'Pending Approval', count: STORES.filter((s: any) => s.status === 'pending').length },
-    { id: 'blocked', label: 'Blocked', count: STORES.filter((s: any) => s.status === 'blocked').length },
+    { id: 'all', label: 'All Stores', count: total },
+    { id: 'active', label: 'Active' },
+    { id: 'pending', label: 'Pending Approval' },
+    { id: 'blocked', label: 'Blocked' },
   ];
+
+
 
   const columns: Column<any>[] = [
     {
@@ -95,7 +82,8 @@ export function StoresClient() {
         </div>
       ),
     },
-    { key: 'module', header: 'Module', render: (v: any) => <Badge variant="info">{v?.name || 'Default'}</Badge> },
+    { key: 'module', header: 'Module', render: (v: any) => <Badge variant="info">{getTranslation(v?.name, 'en') || 'Default'}</Badge> },
+
     {
       key: 'orders',
       header: 'Orders',
@@ -180,8 +168,9 @@ export function StoresClient() {
           onSearchChange={(v) => { setSearch(v); setPage(1); }}
           onExport={() => {}}
         />
-        <DataTable columns={columns} data={paginated} keyField="id" className="rounded-none border-none" />
-        <TablePagination page={page} perPage={PER_PAGE} total={filtered.length} onPageChange={setPage} />
+        <DataTable columns={columns} data={stores} loading={isLoading} keyField="id" className="rounded-none border-none" />
+        <TablePagination page={page} perPage={PER_PAGE} total={total} onPageChange={setPage} />
+
       </div>
     </div>
   );

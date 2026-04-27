@@ -36,55 +36,8 @@ import { StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 
-// ── Mock Data ──────────────────────────────────────────────
-const salesData = [
-  { month: 'Jan', sales: 420000, orders: 1240 },
-  { month: 'Feb', sales: 380000, orders: 1050 },
-  { month: 'Mar', sales: 610000, orders: 1890 },
-  { month: 'Apr', sales: 540000, orders: 1560 },
-  { month: 'May', sales: 720000, orders: 2100 },
-  { month: 'Jun', sales: 680000, orders: 1950 },
-  { month: 'Jul', sales: 850000, orders: 2450 },
-  { month: 'Aug', sales: 790000, orders: 2280 },
-  { month: 'Sep', sales: 920000, orders: 2670 },
-  { month: 'Oct', sales: 1050000, orders: 3020 },
-  { month: 'Nov', sales: 980000, orders: 2810 },
-  { month: 'Dec', sales: 1200000, orders: 3450 },
-];
-
-const userStats = [
-  { month: 'Jan', customers: 340, vendors: 12 },
-  { month: 'Feb', customers: 290, vendors: 8 },
-  { month: 'Mar', customers: 520, vendors: 19 },
-  { month: 'Apr', customers: 410, vendors: 14 },
-  { month: 'May', customers: 680, vendors: 24 },
-  { month: 'Jun', customers: 590, vendors: 20 },
-  { month: 'Jul', customers: 810, vendors: 31 },
-  { month: 'Aug', customers: 740, vendors: 27 },
-  { month: 'Sep', customers: 920, vendors: 35 },
-  { month: 'Oct', customers: 1050, vendors: 42 },
-  { month: 'Nov', customers: 980, vendors: 38 },
-  { month: 'Dec', customers: 1250, vendors: 51 },
-];
-
-const recentOrders = [
-  { id: 'AM-10567', customer: 'Rahim Ahmed', store: 'Dhaka Fresh Market', amount: 2450, status: 'pending', time: '2 min ago' },
-  { id: 'AM-10566', customer: 'Fatima Begum', store: 'BD Electronics', amount: 12800, status: 'confirmed', time: '8 min ago' },
-  { id: 'AM-10565', customer: 'Karim Hossain', store: 'Dhaka Pharmacy', amount: 950, status: 'processing', time: '15 min ago' },
-  { id: 'AM-10564', customer: 'Nasrin Islam', store: 'Amana Grocery', amount: 3200, status: 'out_for_delivery', time: '32 min ago' },
-  { id: 'AM-10563', customer: 'Hasan Ali', store: 'Fashion Hub BD', amount: 8750, status: 'delivered', time: '1 hr ago' },
-  { id: 'AM-10562', customer: 'Sumaiya Khan', store: 'BD Electronics', amount: 15400, status: 'cancelled', time: '2 hr ago' },
-];
-
-const topStores = [
-  { name: 'Dhaka Fresh Market', orders: 342, revenue: 820000, rating: 4.8 },
-  { name: 'BD Electronics', orders: 218, revenue: 2150000, rating: 4.6 },
-  { name: 'Amana Grocery', orders: 189, revenue: 540000, rating: 4.9 },
-  { name: 'Fashion Hub BD', orders: 156, revenue: 960000, rating: 4.5 },
-  { name: 'Dhaka Pharmacy', orders: 134, revenue: 380000, rating: 4.7 },
-];
-
 const orderStatusCards = [
+
   { label: 'Pending Orders', count: 124, icon: <Clock className="w-5 h-5" />, color: '#f59e0b', bgColor: '#fef3c7' },
   { label: 'Confirmed Orders', count: 89, icon: <CheckCircle2 className="w-5 h-5" />, color: '#0ea5e9', bgColor: '#e0f2fe' },
   { label: 'Processing', count: 67, icon: <RefreshCcw className="w-5 h-5" />, color: '#7c3aed', bgColor: '#ede9fe' },
@@ -110,18 +63,35 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
-import { useAdminStats, useOrderChart } from '@/hooks/useAdminDashboard';
+import { useAdminStats, useOrderChart, useReportsOverview } from '@/hooks/useAdminDashboard';
 
 // ── Main Dashboard ──────────────────────────────────────────
 export function AdminDashboardClient() {
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
   const { data: statsData, isLoading: statsLoading } = useAdminStats();
   const { data: chartData, isLoading: chartLoading } = useOrderChart(period === 'week' ? 7 : 30);
+  const { data: reportsData } = useReportsOverview();
 
-  if (statsLoading || chartLoading) return <div className="p-8 text-center">Loading dashboard data...</div>;
+  if (statsLoading || chartLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <div className="w-10 h-10 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[14px] text-[var(--muted-foreground)]">Loading dashboard data...</p>
+      </div>
+    );
+  }
 
-  const stats = statsData?.stats || { totalOrders: 0, totalRevenue: 0, totalCustomers: 0, totalStores: 0, totalProducts: 0 };
-  const recentOrdersList = statsData?.recentOrders || [];
+  const stats = (statsData as any)?.stats || { totalOrders: 0, totalRevenue: 0, totalCustomers: 0, totalStores: 0, totalProducts: 0 };
+  const recentOrdersList = (statsData as any)?.recentOrders || [];
+  const topStoresList = (reportsData as any)?.topStores || [];
+
+  // Map backend chart data to Recharts format
+  const formattedChartData = chartData?.map((item: any) => ({
+    label: item.date.split('-').slice(1).join('/'), // MM/DD
+    sales: item.revenue,
+    orders: item.orders,
+  })) || [];
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -146,6 +116,7 @@ export function AdminDashboardClient() {
           ))}
         </div>
       </div>
+
 
       {/* Stat Cards — Row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -235,16 +206,17 @@ export function AdminDashboardClient() {
             <p className="text-[12px] text-[var(--muted-foreground)]">Monthly revenue (BDT)</p>
           </CardHeader>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}K`} />
+            <LineChart data={formattedChartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               <Line type="monotone" dataKey="sales" name="Sales" stroke="var(--primary)" strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: 'var(--primary)' }} />
               <Line type="monotone" dataKey="orders" name="Orders" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#3b82f6' }} />
             </LineChart>
           </ResponsiveContainer>
+
         </Card>
 
         {/* User Statistics Chart */}
@@ -254,16 +226,17 @@ export function AdminDashboardClient() {
             <p className="text-[12px] text-[var(--muted-foreground)]">Customers & vendors registered</p>
           </CardHeader>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={userStats} margin={{ top: 5, right: 5, left: 0, bottom: 5 }} barSize={12}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <BarChart data={[]} margin={{ top: 5, right: 5, left: 0, bottom: 5 }} barSize={12}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               <Bar dataKey="customers" name="Customers" fill="var(--primary)" radius={[3, 3, 0, 0]} />
               <Bar dataKey="vendors" name="Vendors" fill="#3b82f6" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+
         </Card>
       </div>
 
@@ -307,24 +280,27 @@ export function AdminDashboardClient() {
             </Button>
           </div>
           <div className="divide-y divide-[var(--border)]">
-            {topStores.map((store, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-3 hover:bg-[#fafafa] transition-colors">
+            {topStoresList.length > 0 ? topStoresList.map((store: any, i: number) => (
+              <div key={store.id || i} className="flex items-center gap-3 px-5 py-3 hover:bg-[#fafafa] transition-colors">
                 <div
                   className="w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-white text-xs font-bold shrink-0"
                   style={{ background: `hsl(${i * 50 + 140}, 55%, 45%)` }}
                 >
-                  {store.name.charAt(0)}
+                  {(store.name || 'S').charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-[var(--foreground)] truncate">{store.name}</p>
-                  <p className="text-[11px] text-[var(--muted-foreground)]">{store.orders} orders · ⭐ {store.rating}</p>
+                  <p className="text-[13px] font-medium text-[var(--foreground)] truncate">{store.name || 'Unnamed Store'}</p>
+                  <p className="text-[11px] text-[var(--muted-foreground)]">{store._count?.orders || 0} orders · ⭐ {store.rating || 0}</p>
                 </div>
                 <p className="text-[12px] font-semibold text-[var(--foreground)] shrink-0">
-                  {formatCurrency(store.revenue)}
+                  {formatCurrency(store.totalRevenue || 0)}
                 </p>
               </div>
-            ))}
+            )) : (
+              <div className="p-8 text-center text-[12px] text-[var(--muted-foreground)]">No data available</div>
+            )}
           </div>
+
         </Card>
       </div>
     </div>

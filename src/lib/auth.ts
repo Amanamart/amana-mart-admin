@@ -39,12 +39,17 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid password');
         }
 
+        if (user.role !== 'ADMIN' && user.role !== 'EMPLOYEE') {
+          throw new Error('Access denied. Admin privileges required.');
+        }
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
         };
+
       }
     })
   ],
